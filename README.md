@@ -17,10 +17,7 @@ peekaboo [-o output_file] [-v] [-w]
 - Show a simple GUI that displays the image maybe
 
 ## How:
-- Java using Robot and Swing
-- Python using [PyAutoGUI](https://pyautogui.readthedocs.io/en/latest/) and [PyGame](https://www.pygame.org/) or [GTK](https://pygobject.readthedocs.io/en/latest/)
-- Rust using [Scrap](https://crates.io/crates/scrap/0.5.0) and probably [Image](https://lib.rs/crates/image) and [GTK](https://gtk-rs.org/)
+Java using Robot and Swing
 
 ## Challenges:
-- How this heck is gonna work with ssh
-- I've literally never done anything in Rust before why am i using it help
+How this heck is gonna work with ssh
