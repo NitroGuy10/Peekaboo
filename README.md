@@ -2,10 +2,10 @@
 
 Take screenshots from the terminal
 
-Hopefully I'll make this useable with ssh but no promises
+Yep thats it
 
 ```
-peekaboo [-o output_file] [-v] [-w]
+peekaboo [-o output_file [-v]] [-s screen_number] [-w]
 ```
 
 ---
@@ -19,5 +19,5 @@ peekaboo [-o output_file] [-v] [-w]
 ## How:
 Java using Robot and Swing
 
-## Challenges:
-How this heck is gonna work with ssh
+## Known bugs:
+Sometimes, on Windows, the program will detect multiple screens but will only insist on taking a screenshot of one of them regardless of screen choice.
