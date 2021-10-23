@@ -10,12 +10,12 @@ import java.util.Arrays;
 
 public class Peekaboo
 {
-    // peekaboo [-o output_file [-v]] [-s screen_number] [-w]
-    public static final String HELP_STRING = "peekaboo [-o output_file] [-v] [-w]\n" +
+    // java peekaboo [-o output_file [-v]] [-w] [-nc]
+    public static final String HELP_STRING = "java peekaboo [-o output_file [-v]] [-w] [-nc]\n" +
             "-o output_file   .... Output an image file to the specified path (WILL ALWAYS OVERWRITE)\n" +
             "-v               .... Open the resultant image file in the default image viewer\n" +
-            "-s screen_number .... Specify the screen to capture (for multiple monitors etc.)\n" +
-            "-w               .... Open a temporary GUI that displays the image";
+            "-w               .... Open a temporary GUI that displays the image\n" +
+            "-nc              .... Do not attempt to crop the screenshot (see README for more details)";
 
     public static void main (String[] args)
     {
@@ -45,7 +45,7 @@ public class Peekaboo
         boolean doOutputFile = false;
         boolean doImageViewer = false;
         boolean doGUIWindow = false;
-        int screen_number = -1;  // -1 == Default screen
+        boolean doCrop = true;
         File outputFile = null;
 
         ArrayList<String> arguments = new ArrayList<>(Arrays.asList(args));
@@ -84,48 +84,18 @@ public class Peekaboo
             System.out.println("[-v] cannot be used unless [-o output_file] is also used");
         }
 
-        // Screen number flag
-        if (arguments.contains("-s"))
-        {
-            if (arguments.indexOf("-s") + 1 < arguments.size())
-            {
-                String potential_screen_number = arguments.get(arguments.indexOf("-s") + 1);
-                arguments.remove(arguments.indexOf("-s") + 1);
-                arguments.remove("-s");
-
-                try
-                {
-                    Integer.parseInt(potential_screen_number);
-                }
-                catch (NumberFormatException e)
-                {
-                    System.out.println(potential_screen_number + " is not a valid integer");
-                    System.out.println(HELP_STRING);
-                    System.exit(-1);
-                }
-
-                screen_number = Integer.parseInt(potential_screen_number);
-
-                if (screen_number < 0)
-                {
-                    System.out.println("Screen number cannot be negative");
-                    System.out.println(HELP_STRING);
-                    System.exit(-1);
-                }
-            }
-            else
-            {
-                System.out.println("Please specify screen number");
-                System.out.println(HELP_STRING);
-                System.exit(-1);
-            }
-        }
-
         // GUI window flag
         if (arguments.contains("-w"))
         {
             arguments.remove("-w");
             doGUIWindow = true;
+        }
+
+        // "No Crop" flag
+        if (arguments.contains("-nc"))
+        {
+            arguments.remove("-nc");
+            doCrop = false;
         }
 
         if (arguments.size() != 0)
@@ -149,44 +119,109 @@ public class Peekaboo
             System.out.println("Peekaboo!");
 
             Robot robot = null;
-            GraphicsDevice screenDevice = null;
-            if (screen_number == -1)
+
+            // If the program has gotten this far, this should not throw an exception
+            try { robot = new Robot(); } catch (AWTException e) { e.printStackTrace(); System.exit(1);}
+
+            // Make a wild guess about how big the screenshot should be
+            int totalWidth = 0;
+            int totalHeight = 0;
+            for (GraphicsDevice screen : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
             {
-                // If the program has gotten this far, this should not throw an exception
-                screenDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-                try { robot = new Robot(); } catch (AWTException e) { e.printStackTrace(); System.exit(1);}
-            }
-            else if (screen_number >= GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices().length)
-            {
-                System.out.println("Screen number " + screen_number + " does not exist");
-                System.exit(1);
-            }
-            else
-            {
-                try
-                {
-                    screenDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[screen_number];
-                    robot = new Robot(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[screen_number]);
-                }
-                catch (IllegalArgumentException e)
-                {
-                    System.out.println("Screen number " + screen_number + " exists but is not a valid screen");
-                    System.exit(1);
-                }
-                // If the program has gotten this far, this exception should not occur
-                catch (AWTException e)
-                {
-                    e.printStackTrace();
-                    System.exit(1);
-                }
+                totalWidth += screen.getDisplayMode().getWidth();
+                totalHeight += screen.getDisplayMode().getHeight();
             }
 
             // Take a screenshot
-            BufferedImage screenshot = robot.createScreenCapture(new Rectangle(
-                    screenDevice.getDisplayMode().getWidth(),
-                    screenDevice.getDisplayMode().getHeight()
-            ));
+            BufferedImage screenshot = robot.createScreenCapture(new Rectangle(-totalWidth, -totalHeight, totalWidth * 2, totalHeight * 2));
+            System.out.println("Screenshot taken!");
 
+            // Adjust the size of the screenshot to remove as much of the black void as possible
+            if (doCrop)
+            {
+                System.out.println("Cropping...");
+                int leftBound = -1;
+                int rightBound = -1;
+                int topBound = -1;
+                int bottomBound = -1;
+
+                // TODO I bet you could do a binary search here instead
+                // Find left bound
+                for (int x = 0; x < screenshot.getWidth(); x++)
+                {
+                    for (int y = 0; y < screenshot.getHeight(); y++)
+                    {
+                        if (screenshot.getRGB(x, y) != -16777216)  // -16777216 is the RGB of the color black
+                        {
+                            leftBound = x;
+                            break;
+                        }
+                    }
+                    if (leftBound != -1)
+                    {
+                        break;
+                    }
+                }
+                // Find right bound
+                for (int x = screenshot.getWidth() - 1; x >= 0; x--)
+                {
+                    for (int y = 0; y < screenshot.getHeight(); y++)
+                    {
+                        if (screenshot.getRGB(x, y) != -16777216)
+                        {
+                            rightBound = x;
+                            break;
+                        }
+                    }
+                    if (rightBound != -1)
+                    {
+                        break;
+                    }
+                }
+                // Find top bound
+                for (int y = 0; y < screenshot.getHeight(); y++)
+                {
+                    for (int x = leftBound; x <= rightBound; x++)
+                    {
+                        if (screenshot.getRGB(x, y) != -16777216)
+                        {
+                            topBound = y;
+                            break;
+                        }
+                    }
+                    if (topBound != -1)
+                    {
+                        break;
+                    }
+                }
+                // Find bottom bound
+                for (int y = screenshot.getHeight() - 1; y >= 0; y--)
+                {
+                    for (int x = leftBound; x <= rightBound; x++)
+                    {
+                        if (screenshot.getRGB(x, y) != -16777216)
+                        {
+                            bottomBound = y;
+                            break;
+                        }
+                    }
+                    if (bottomBound != -1)
+                    {
+                        break;
+                    }
+                }
+
+                if (leftBound == -1 && rightBound == -1 && topBound == -1 && bottomBound == -1)
+                {
+                    System.out.println("Just thought I should let you know that your screenshot is entirely black :/");
+                }
+                else
+                {
+                    screenshot = screenshot.getSubimage(leftBound, topBound, rightBound - leftBound, bottomBound - topBound);
+                }
+            }
+
+            ///////// Output a file /////////
             if (doOutputFile)
             {
                 String outputFileSuffix = outputFile.getName().split("\\.")[outputFile.getName().split("\\.").length - 1];
@@ -194,6 +229,7 @@ public class Peekaboo
                 {
                     if (Arrays.asList(ImageIO.getWriterFileSuffixes()).contains(outputFileSuffix))
                     {
+                        System.out.println("Writing image file...");
                         ImageIO.write(screenshot, outputFileSuffix, outputFile);
                         System.out.println("Image file successfully created!");
                         System.out.println(outputFile);
