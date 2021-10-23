@@ -5,12 +5,12 @@ Take screenshots from the terminal
 Yep, that's it
 
 ```
-java peekaboo [-o output_file [-v]] [-w] [-nc]
+java peekaboo output_file [-no] [-v] [-nc]
 
--o output_file   .... Output an image file to the specified path (WILL ALWAYS OVERWRITE)
--v               .... Open the resultant image file in the default image viewer
--w               .... Open a temporary GUI that displays the image
--nc              .... Do not attempt to crop the screenshot (see "Known Quirks" for more details)
+output_file  .... Output an image file to the specified path (WILL OVERWRITE BY DEFAULT)
+-no          .... Do not overwrite if output_file already exists
+-v           .... Open the resultant image file in the default image viewer
+-nc          .... Do not attempt to crop the screenshot (see "Known Quirks" for more details)
 ```
 
 Written in Java
