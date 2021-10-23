@@ -100,6 +100,12 @@ public class Peekaboo
         ///////// Take the screenshot /////////
         System.out.println("Peekaboo!");
 
+        if (outputFile.exists() && !doOverwrite)
+        {
+            System.out.println("File already exists. Nothing was written.");
+            System.exit(0);
+        }
+
         Robot robot = null;
 
         // If the program has gotten this far, this should not throw an exception
@@ -212,47 +218,40 @@ public class Peekaboo
         }
 
         ///////// Output an image file /////////
-        if (outputFile.exists() && !doOverwrite)
+        String outputFileSuffix = outputFile.getName().split("\\.")[outputFile.getName().split("\\.").length - 1];
+        try
         {
-            System.out.println("File already exists. Nothing was written.");
+            if (Arrays.asList(ImageIO.getWriterFileSuffixes()).contains(outputFileSuffix))
+            {
+                System.out.println("Writing image file...");
+                ImageIO.write(screenshot, outputFileSuffix, outputFile);
+                System.out.println("Image file successfully created!");
+                System.out.println(outputFile);
+            }
+            else
+            {
+                System.out.println("No image writer available for format \"" + outputFileSuffix + "\"");
+                System.exit(1);
+            }
         }
-        else
+        catch (IOException e)
         {
-            String outputFileSuffix = outputFile.getName().split("\\.")[outputFile.getName().split("\\.").length - 1];
+            System.out.println("Unable to write image file");
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        ///////// Open the image file in the default program /////////
+        if (doImageViewer)
+        {
             try
             {
-                if (Arrays.asList(ImageIO.getWriterFileSuffixes()).contains(outputFileSuffix))
-                {
-                    System.out.println("Writing image file...");
-                    ImageIO.write(screenshot, outputFileSuffix, outputFile);
-                    System.out.println("Image file successfully created!");
-                    System.out.println(outputFile);
-                }
-                else
-                {
-                    System.out.println("No image writer available for format \"" + outputFileSuffix + "\"");
-                    System.exit(1);
-                }
+                Desktop.getDesktop().open(outputFile);
             }
             catch (IOException e)
             {
-                System.out.println("Unable to write image file");
+                System.out.println("Unable to open image file in default program");
                 e.printStackTrace();
-                System.exit(1);
-            }
-
-            ///////// Open the image file in the default program /////////
-            if (doImageViewer)
-            {
-                try
-                {
-                    Desktop.getDesktop().open(outputFile);
-                }
-                catch (IOException e)
-                {
-                    System.out.println("Unable to open image file in default program");
-                    e.printStackTrace();
-                }
             }
         }
     }
